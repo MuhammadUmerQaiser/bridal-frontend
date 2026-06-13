@@ -1,223 +1,198 @@
-import React, { useRef, useState } from 'react';
-// Import Swiper React components
-import { Row, Col, Container } from 'react-bootstrap'
-// Import Swiper styles
-import 'swiper/css';
-import 'swiper/css/navigation';
-import { Swiper, SwiperSlide } from "swiper/react";
-import LikeGirl from '../assets/Images/maylikegirl.avif';
-import Form from 'react-bootstrap/Form';
-import Arrow from '../assets/Images/arrow.png';
-import MainBride from '../assets/Images/mainbride.avif';
-import Header from '../components/Header';
-import Footer from '../components/Footer';
-
-
-
+import React, { useEffect, useMemo, useState } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import { Container } from "react-bootstrap";
+import Header from "../components/Header";
+import Footer from "../components/Footer";
+import PageHeader from "../components/PageHeader";
+import ProductCard from "../components/ProductCard";
+import { cachedGet } from "../utils/apiCache";
+import { markImageCached, preloadImages } from "../utils/imageCache";
+import { enqueueSnackbar } from "notistack";
+import PageLoader from "../components/PageLoader";
 
 const CatalogDetails = () => {
-  const DetailsComponent = () => <div className='right-text'>
-    This is a three piece look.
-    Kindly note, product tones may vary due to lighting.
-    For queries or customisations, please mail us at: orders@manishmalhotra.in
-  </div>;
-  const CareInstructionComponent = () => <div className='right-text'>Dry Clean Only</div>;
-  const FitComponent = () => <div className='right-text'>Tailored  </div>;
-  const LegalComponent = () => <div className='right-text'>This is a three piece look.
-    Kindly note, product tones may vary due to lighting.
-    For queries or customisations, please mail us at: orders@manishmalhotra.in</div>;
-  const [activeComponent, setActiveComponent] = useState(null);
+  const { slug } = useParams();
+  const navigate = useNavigate();
+  const [catalog, setCatalog] = useState(null);
+  const [relatedCatalogs, setRelatedCatalogs] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedSlide, setSelectedSlide] = useState(null);
 
-  const renderComponent = () => {
-    switch (activeComponent) {
-      case 'details':
-        return <DetailsComponent />;
-      case 'care':
-        return <CareInstructionComponent />;
-      case 'fit':
-        return <FitComponent />;
-      case 'legal':
-        return <LegalComponent />;
-      default:
-        return <div></div>;
-    }
-  };
+  useEffect(() => {
+    window.scrollTo(0, 0);
+
+    const fetchCatalog = async () => {
+      setLoading(true);
+      try {
+        const data = await cachedGet(
+          `https://naqshzari.com/backend/public/api/get-catalog-by-slug/${slug}`,
+          { headers: { Accept: "application/json" } }
+        );
+
+        if (data.status === 200) {
+          const catalogData = data.data;
+          setCatalog(catalogData);
+          setSelectedSlide(catalogData.image);
+          setRelatedCatalogs(data.related_products || []);
+
+          const galleryUrls = [
+            catalogData.image,
+            ...(catalogData.catalog_images || []).map((img) => img.img),
+          ].filter(Boolean);
+
+          preloadImages([...new Set(galleryUrls)], { concurrency: 4 });
+          preloadImages(
+            (data.related_products || []).map((item) => item.image),
+            { first: 4, concurrency: 2 }
+          );
+        } else {
+          enqueueSnackbar("Internal Server Error", {
+            variant: "error",
+            autoHideDuration: 2000,
+          });
+        }
+      } catch (error) {
+        enqueueSnackbar("Internal Server Error", {
+          variant: "error",
+          autoHideDuration: 2000,
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchCatalog();
+  }, [slug]);
+
+  const galleryImages = useMemo(() => {
+    if (!catalog) return [];
+    const urls = [
+      catalog.image,
+      ...(catalog.catalog_images || []).map((image) => image.img),
+    ].filter(Boolean);
+    return [...new Set(urls)];
+  }, [catalog]);
+
+  const activeImage = selectedSlide || catalog?.image;
 
   return (
-    <>
-    <Header/>
-      <div className='catalog-details-section'>
-        <Container>
-          <Row>
-            <Col md={5}>
-            <div className='main-bride'>
-              <img src={MainBride}/>
-              </div>
-            </Col>
-            <Col md={7}>
-              <div className='product-data'>
-                <div className='share-icon-line'>
-                  <div className='product-name'>Lotus Bloom Ivory Embroidered Lehenga Set</div>
-                  <div>
-                    <svg width="17" height="21" viewBox="0 0 17 21" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M14.6133 2.96875L3.53719 10.5836L14.6133 18.1984" stroke="black" stroke-width="1.45455" />
-                      <circle cx="2.07677" cy="2.07677" r="2.07677" transform="matrix(-1 0 0 1 4.92383 8.50781)" fill="white" stroke="black" stroke-width="1.45455" />
-                      <circle cx="2.07677" cy="2.07677" r="2.07677" transform="matrix(-1 0 0 1 16 15.4336)" fill="white" stroke="black" stroke-width="1.45455" />
-                      <circle cx="2.07677" cy="2.07677" r="2.07677" transform="matrix(-1 0 0 1 16 1.58594)" fill="white" stroke="black" stroke-width="1.45455" />
-                    </svg>
+    <div className="page-shell">
+      <Header />
+
+      {loading && (
+        <div className="page-loading">
+          <PageLoader />
+        </div>
+      )}
+
+      {!loading && catalog && (
+        <>
+          <PageHeader title={catalog.title} />
+          <Container className="detail-section">
+            <div className="detail-layout">
+              <div className="detail-gallery">
+                <div className="detail-main-image">
+                  {activeImage && (
+                    <img
+                      src={activeImage}
+                      alt={catalog.title}
+                      loading="eager"
+                      decoding="async"
+                      fetchPriority="high"
+                      onLoad={() => markImageCached(activeImage)}
+                    />
+                  )}
+                </div>
+
+                {galleryImages.length > 1 && (
+                  <div className="detail-thumbs">
+                    {galleryImages.map((image, index) => (
+                      <button
+                        key={`${image}-${index}`}
+                        type="button"
+                        className={`detail-thumb${
+                          activeImage === image ? " is-active" : ""
+                        }`}
+                        onClick={() => setSelectedSlide(image)}
+                      >
+                        <img
+                          src={image}
+                          alt={`View ${index + 1}`}
+                          loading={index < 8 ? "eager" : "lazy"}
+                          decoding="async"
+                          onLoad={() => markImageCached(image)}
+                        />
+                      </button>
+                    ))}
                   </div>
-                </div>
-                <div className='product-desc'>
-                  Lotus Bloom Ivory embroidered silk lehenga, paired with a matching gold blouse and ivory embroidered dupatta.<br /><br />
-                  Fabric: Silk.
-                  <br />
-                  Color: Ivory.
-                  <br />
-                  Set Includes: Lehenga, Blouse & Dupatta.
-                  <br /><br />
-                  The ensemble is complemented by Manish Malhotra High Jewellery. For enquiries, please contact orders@manishmalhotra.in or call +91 93219 92634.
-                </div>
-              </div>
-              <div className='price-line product-desc' style={{ marginTop: "20px", marginBottom: "20px" }}>
-                <div className='product-amount' style={{ color: "black", fontWeight: "500", fontSize: "20px" }}>
-                  MRP: $ 5367
-                </div>
-                <div className='us-dropdown'>
-                  <Form.Select aria-label="Select Country">
-                    <option>US</option>
-                    <option value="1">Pakistan</option>
-                    <option value="2">India</option>
-                    <option value="3">Dubai</option>
-                  </Form.Select>
-                </div>
-              </div>
-              <div className='size-line product-desc'>
-                <div>
-                  <div>Size</div>
-                  <div className='size-box-line'>
-                    <div className='size-box'>S</div>
-                    <div className='size-box'>M</div>
-                    <div className='size-box'>L</div>
-                    <div className='size-box'>XL</div>
-                    <div className='size-box'>Custom Size</div>
-                  </div>
-                </div>
-                <div style={{cursor:"pointer"}}>Size Guide</div>
-              </div>
-              <div className='product-data product-desc' style={{ color: "rgb(0 128 0)" }}>
-                Made to order: 7 - 8 Weeks
-              </div>
-              <div className='btn-lines product-data product-desc'>
-                <div className='enquire-btn'>Enquire</div>
+                )}
               </div>
 
+              <div className="detail-info">
+                <div className="detail-meta">
+                  {catalog.fabric && (
+                    <div className="detail-meta-row">
+                      <span className="detail-meta-label">Fabric</span>
+                      <span className="detail-meta-value">{catalog.fabric}</span>
+                    </div>
+                  )}
+                  {catalog.color && (
+                    <div className="detail-meta-row">
+                      <span className="detail-meta-label">Color</span>
+                      <span className="detail-meta-value">{catalog.color}</span>
+                    </div>
+                  )}
+                  {catalog.category?.title && (
+                    <div className="detail-meta-row">
+                      <span className="detail-meta-label">Category</span>
+                      <span className="detail-meta-value">
+                        {catalog.category.title}
+                      </span>
+                    </div>
+                  )}
+                </div>
 
-            </Col>
-          </Row>
-          <div className='left-section-accordion'>
-            <Row>
-              <Col md={4}>
-                <div className='accordion-left' onClick={() => setActiveComponent('details')}>
-                  <div>Details</div>
-                  <div>
-                    <img className='img-fluid' src={Arrow} />
+                {catalog.description && (
+                  <div className="detail-description">
+                    {catalog.description
+                      .replace(
+                        /The ensemble is complemented by Naqshzari\.[\s\S]*?(orders@naqshzari\.com|support@naqshzari\.com)[^\n]*/gi,
+                        ""
+                      )
+                      .trim()}
                   </div>
-                </div>
-                <div className='accordion-left' onClick={() => setActiveComponent('care')}>
-                  <div>Care Instruction</div>
-                  <div>
-                    <img className='img-fluid' src={Arrow} />
-                  </div>                </div>
-                <div className='accordion-left' onClick={() => setActiveComponent('fit')}>
-                  <div>Fit</div>
-                  <div>
-                    <img className='img-fluid' src={Arrow} />
-                  </div>                </div>
-                <div className='accordion-left' onClick={() => setActiveComponent('legal')}>
-                  <div>Legal</div>
-                  <div>
-                    <img className='img-fluid' src={Arrow} />
-                  </div>                </div>
-              </Col>
-              <Col md={8}>
-                <div>
-                  {renderComponent()}
-                </div>
-              </Col>
-            </Row>
-          </div>
-          <div className='you-also-like'>
-            <div className='heading'>You May Also Like</div>
-            <Swiper className="mySwiper" slidesPerView={4.5} loop={true} spaceBetween={20}>
-              <SwiperSlide>
-                <div className='img-size-like'>
-                  <img src={LikeGirl} />
-                  <div className='dress-title'>
-                    Hazy Lavender Embroidered Lehenga Set
-                  </div>
-                  <div className='dress-title' style={{ fontSize: "14px", paddingTop: "10px" }}>
-                    PKR 50,000
-                  </div>
-                </div>
-              </SwiperSlide>
-              <SwiperSlide>
-                <div className='img-size-like'>
-                  <img src={LikeGirl} />
-                  <div className='dress-title'>
-                    Hazy Lavender Embroidered Lehenga Set
-                  </div>
-                  <div className='dress-title' style={{ fontSize: "14px", paddingTop: "10px" }}>
-                    PKR 50,000
-                  </div>
-                </div>
-              </SwiperSlide>              <SwiperSlide>
-                <div className='img-size-like'>
-                  <img src={LikeGirl} />
-                  <div className='dress-title'>
-                    Hazy Lavender Embroidered Lehenga Set
-                  </div>
-                  <div className='dress-title' style={{ fontSize: "14px", paddingTop: "10px" }}>
-                    PKR 50,000
-                  </div>
-                </div>
-              </SwiperSlide>              <SwiperSlide>
-                <div className='img-size-like'>
-                  <img src={LikeGirl} />
-                  <div className='dress-title'>
-                    Hazy Lavender Embroidered Lehenga Set
-                  </div>
-                  <div className='dress-title' style={{ fontSize: "14px", paddingTop: "10px" }}>
-                    PKR 50,000
-                  </div>
-                </div>
-              </SwiperSlide>              <SwiperSlide>
-                <div className='img-size-like'>
-                  <img src={LikeGirl} />
-                  <div className='dress-title'>
-                    Hazy Lavender Embroidered Lehenga Set
-                  </div>
-                  <div className='dress-title' style={{ fontSize: "14px", paddingTop: "10px" }}>
-                    PKR 50,000
-                  </div>
-                </div>
-              </SwiperSlide>              <SwiperSlide>
-                <div className='img-size-like'>
-                  <img src={LikeGirl} />
-                  <div className='dress-title'>
-                    Hazy Lavender Embroidered Lehenga Set
-                  </div>
-                  <div className='dress-title' style={{ fontSize: "14px", paddingTop: "10px" }}>
-                    PKR 50,000
-                  </div>
-                </div>
-              </SwiperSlide>
-            </Swiper>
-          </div>
-        </Container>
-        <Footer/>
-      </div>
-    </>
-  )
-}
+                )}
 
-export default CatalogDetails
+                <div className="detail-description">
+                  The ensemble is complemented by Naqshzari. For enquiries,
+                  please contact orders@naqshzari.com or call +923008220544.
+                </div>
+
+                <div className="detail-leadtime">Made to order: 7 - 8 Weeks</div>
+
+                <div className="enquire-btn" onClick={() => navigate("/contact")}>
+                  Enquire
+                </div>
+              </div>
+            </div>
+
+            {relatedCatalogs.length > 0 && (
+              <section className="detail-related">
+                <h3 className="detail-related__title">You May Also Like</h3>
+                <div className="product-grid">
+                  {relatedCatalogs.slice(0, 4).map((item, index) => (
+                    <ProductCard key={item.slug || index} product={item} />
+                  ))}
+                </div>
+              </section>
+            )}
+          </Container>
+        </>
+      )}
+
+      <Footer />
+    </div>
+  );
+};
+
+export default CatalogDetails;

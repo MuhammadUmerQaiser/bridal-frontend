@@ -1,177 +1,228 @@
-import React from "react";
-import { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Swiper, SwiperSlide } from "swiper/react";
-import { Pagination, Autoplay } from "swiper/modules";
-import SliderOne from "../assets/Images/sliderimageone.avif";
-import SliderTwo from "../assets/Images/sliderimagetwo.avif";
-import SliderThree from "../assets/Images/sliderimagethree.avif";
-import SliderFour from "../assets/Images/sliderimagefour.avif";
+import { Pagination, Autoplay, Navigation, EffectFade } from "swiper/modules";
 import Header from "../components/Header";
-import { Row, Col } from "react-bootstrap";
-import Lehnga from "../assets/Images/lehnga.avif";
-import Alia from "../assets/Images/alia.avif";
-import Kareena from "../assets/Images/kareena.avif";
-import Kiara from "../assets/Images/kiara.avif";
+import LazyImage from "../components/LazyImage";
 import Footer from "../components/Footer";
+import { useNavigate } from "react-router-dom";
+import { cachedGet } from "../utils/apiCache";
+import { preloadImages } from "../utils/imageCache";
+import { enqueueSnackbar } from "notistack";
+import "swiper/css/effect-fade";
+import "./Home.css";
+
+const SLIDER_IMAGES = [
+  () => import("../assets/1.jpg"),
+  () => import("../assets/2.jpg"),
+  () => import("../assets/3.jpg"),
+  () => import("../assets/4.jpg"),
+];
+
+const BANNER_IMAGES = {
+  five: () => import("../assets/5.jpg"),
+  six: () => import("../assets/6.jpg"),
+};
 
 const Home = () => {
+  const navigate = useNavigate();
+  const [catalogs, setCatalogs] = useState([]);
+  const [catalogsLoading, setCatalogsLoading] = useState(true);
+  const [slideUrls, setSlideUrls] = useState([]);
+  const [bannerUrls, setBannerUrls] = useState({});
+  const [activeSlide, setActiveSlide] = useState(1);
+  const bannersLoadedRef = useRef(false);
+  const slideCount = slideUrls.length || SLIDER_IMAGES.length;
+
+  useEffect(() => {
+    Promise.all(SLIDER_IMAGES.map((loader) => loader())).then((modules) => {
+      setSlideUrls(modules.map((module) => module.default));
+    });
+  }, []);
+
+  useEffect(() => {
+    setCatalogsLoading(true);
+    cachedGet(
+      "https://naqshzari.com/backend/public/api/get-all-catalogs?take=4",
+      { headers: { Accept: "application/json" } }
+    )
+      .then((data) => {
+        if (data.status === 200) {
+          setCatalogs(data.data || []);
+          preloadImages((data.data || []).map((item) => item.image), {
+            first: 4,
+            concurrency: 2,
+          });
+        }
+      })
+      .catch(() => {
+        enqueueSnackbar("Internal Server Error", {
+          variant: "error",
+          autoHideDuration: 2000,
+        });
+      })
+      .finally(() => setCatalogsLoading(false));
+  }, []);
+
+  useEffect(() => {
+    const loadBanners = async () => {
+      if (bannersLoadedRef.current) return;
+      bannersLoadedRef.current = true;
+
+      const entries = await Promise.all(
+        Object.entries(BANNER_IMAGES).map(async ([key, loader]) => {
+          const module = await loader();
+          return [key, module.default];
+        })
+      );
+
+      setBannerUrls(Object.fromEntries(entries));
+    };
+
+    if ("requestIdleCallback" in window) {
+      window.requestIdleCallback(loadBanners);
+    } else {
+      setTimeout(loadBanners, 800);
+    }
+  }, []);
+
   return (
-    <>
+    <div className="home-page">
       <Header />
-      <div className="main-slider">
-        <Swiper
-          pagination={{
-            clickable: true,
-          }}
-          navigation={true}
-          loop={true}
-          modules={[Pagination]}
-          className="mySwiper"
-        >
-          <SwiperSlide>
-            <img src={SliderOne} />
-          </SwiperSlide>
-          <SwiperSlide>
-            <img src={SliderTwo} />
-          </SwiperSlide>{" "}
-          <SwiperSlide>
-            <img src={SliderThree} />
-          </SwiperSlide>{" "}
-          <SwiperSlide>
-            <img src={SliderFour} />
-          </SwiperSlide>
-        </Swiper>
-      </div>
-      {/* Main Card Section */}
-      <div className="heading-text">Curated This Season</div>
-      <div className="desc-text">
-        A blend of classic silhouettes and our signature shine, embodied by
-        enigmatic sequins.
-      </div>
-      <div className="cards-section mt-3">
-        <Row>
-          <Col md={3}>
-            <div className="card-text-position">
-              <div className="curated-card"></div>
-              <div className="d-flex align-items-center justify-content-center card-body-text">
-                <div className="lehnga-text">Lehngas</div>
-                <hr />
-              </div>
-            </div>
-          </Col>
-          <Col md={3}>
-            <div className="card-text-position">
-              <div className="curated-card"></div>
-              <div className="d-flex align-items-center justify-content-center card-body-text">
-                <div className="lehnga-text">Lehngas</div>
-                <hr />
-              </div>
-            </div>
-          </Col>
-          <Col md={3}>
-            <div className="card-text-position">
-              <div className="curated-card"></div>
-              <div className="d-flex align-items-center justify-content-center card-body-text">
-                <div className="lehnga-text">Lehngas</div>
-                <hr />
-              </div>
-            </div>
-          </Col>
-          <Col md={3}>
-            <div className="card-text-position">
-              <div className="curated-card"></div>
-              <div className="d-flex align-items-center justify-content-center card-body-text">
-                <div className="lehnga-text">Lehngas</div>
-                <hr />
-              </div>
-            </div>
-          </Col>
-        </Row>
-      </div>
-      <div className="girl-img">
-        <img
-          src="https://cdn.pixelbin.io/v2/black-bread-289bfa/81ub5U/original/manish-cms_images/1712663653HOME_PAGE_revised-_1531x731_VOWS.webp"
-          class="dekshtop_only"
-          alt=""
-        ></img>
-      </div>
-      <div className="girl-img" style={{ marginTop: "0" }}>
-        <img
-          src="https://cdn.pixelbin.io/v2/black-bread-289bfa/81ub5U/original/manish-cms_images/1724055335JWL_banner_2.webp"
-          width="4678"
-          height="2234"
-          alt="Fine Jewellery by Manish Malhotra"
-        />
-      </div>
-      <div className="second-swiper">
-        <Swiper
-          slidesPerView={4.2}
-          spaceBetween={30}
-          loop={true}
-          centeredSlides={true}
-          pagination={{
-            clickable: true,
-          }}
-          autoplay={{
-            delay: 3000, // 3 seconds between each slide
-            disableOnInteraction: false, // Continue autoplay after user interaction
-          }}
-          className="mySwiper"
-          modules={[Autoplay]}
-        >
-          <SwiperSlide>
-            <img src={Alia} />
-          </SwiperSlide>
-          <SwiperSlide>
-            <img src={Kareena} />
-          </SwiperSlide>
-          <SwiperSlide>
-            <img src={Kiara} />
-          </SwiperSlide>
-          <SwiperSlide>
-            <img src={Alia} />
-          </SwiperSlide>
-          <SwiperSlide>
-            <img src={Kareena} />
-          </SwiperSlide>
-          <SwiperSlide>
-            <img src={Kiara} />
-          </SwiperSlide>
-        </Swiper>
-      </div>
-      <div className="video-section">
-        <video
-          src="https://admin.manishmalhotra.in/videos/2%202%201.MP4"
-          type="video/mp4"
-          width="100%"
-          height="auto"
-          playsinline=""
-          loop="loop"
-          muted=""
-          autoplay="autoplay"
-          controls="controls"
-        ></video>
-        <div className="video-section-text">
-          <div className="video-heading">Summer 2024 Collection</div>
-          <div className="video-btn">View the Collection</div>
+
+      <section className="home-hero">
+        <div className="home-hero-slider main-slider">
+          <Swiper
+            pagination={{ clickable: true }}
+            autoplay={{
+              delay: 5000,
+              disableOnInteraction: false,
+            }}
+            navigation={true}
+            loop={slideUrls.length > 1}
+            speed={900}
+            effect="fade"
+            fadeEffect={{ crossFade: true }}
+            modules={[Pagination, Navigation, Autoplay, EffectFade]}
+            className="mySwiper"
+            onSlideChange={(swiper) =>
+              setActiveSlide((swiper.realIndex % slideCount) + 1)
+            }
+          >
+            {(slideUrls.length ? slideUrls : SLIDER_IMAGES).map((_, index) => (
+              <SwiperSlide key={index}>
+                <div className="home-hero-slide">
+                  {slideUrls[index] ? (
+                    <LazyImage
+                      src={slideUrls[index]}
+                      alt={`Naqshzari collection slide ${index + 1}`}
+                      className="main-slider-image"
+                      eager={index === 0}
+                      fetchPriority={index === 0 ? "high" : "auto"}
+                    />
+                  ) : (
+                    <div className="slider-placeholder" aria-hidden="true" />
+                  )}
+                </div>
+              </SwiperSlide>
+            ))}
+          </Swiper>
+
+          <div className="home-hero-counter" aria-live="polite">
+            <span className="home-hero-counter__current">
+              {String(activeSlide).padStart(2, "0")}
+            </span>
+            <span className="home-hero-counter__sep">/</span>
+            <span className="home-hero-counter__total">
+              {String(slideCount).padStart(2, "0")}
+            </span>
+          </div>
         </div>
-      </div>
-      <div className="gray-video-section">
-        <video
-          src="https://admin.manishmalhotra.in/videos/couture_processd.mp4"
-          type="video/mp4"
-          width="100%"
-          height="auto"
-          class="dekshtop_only"
-          playsinline=""
-          loop="loop"
-          muted=""
-          autoplay="autoplay"
-          controls="controls"
-        ></video>
-      </div>
+      </section>
+
+      <section className="home-arrivals" id="home-curated">
+        <div className="home-arrivals__head">
+          <div className="home-arrivals__titles">
+            <h2 className="home-arrivals__title">Curated This Season</h2>
+            <p className="home-arrivals__desc">
+              A blend of classic silhouettes and our signature shine, embodied
+              by enigmatic sequins.
+            </p>
+          </div>
+          <button
+            type="button"
+            className="home-arrivals__viewall"
+            onClick={() => navigate("/collections")}
+          >
+            View All
+          </button>
+        </div>
+
+        <div className="home-arrivals__grid">
+          {catalogsLoading &&
+            Array.from({ length: 4 }).map((_, index) => (
+              <div key={`loading-${index}`} className="home-arrival-card home-arrival-card--loading">
+                <div className="home-arrival-card__img home-arrival-card__img--shimmer" />
+                <div className="home-arrival-card__name home-arrival-card__name--shimmer" />
+              </div>
+            ))}
+
+          {!catalogsLoading &&
+            catalogs.map((catalog, index) => (
+              <article
+                key={catalog.slug || index}
+                className="home-arrival-card"
+                onClick={() => navigate(`/catalog-details/${catalog.slug}`)}
+              >
+                <div className="home-arrival-card__img">
+                  <LazyImage src={catalog.image} alt={catalog.title} />
+                </div>
+                <h3 className="home-arrival-card__name">{catalog.title}</h3>
+              </article>
+            ))}
+        </div>
+      </section>
+
+      <section className="home-diptych" aria-label="Collection highlights">
+        <button
+          type="button"
+          className="home-diptych__panel"
+          onClick={() => navigate("/collections")}
+        >
+          <div className="home-diptych__media">
+            {bannerUrls.five ? (
+              <LazyImage
+                src={bannerUrls.five}
+                alt="Naqshzari bridal collection"
+              />
+            ) : (
+              <div className="home-diptych__placeholder" />
+            )}
+          </div>
+          <span className="home-diptych__hover-line" aria-hidden="true" />
+        </button>
+
+        <div className="home-diptych__divider" aria-hidden="true">
+          <span className="home-diptych__diamond" />
+        </div>
+
+        <button
+          type="button"
+          className="home-diptych__panel"
+          onClick={() => navigate("/collections")}
+        >
+          <div className="home-diptych__media">
+            {bannerUrls.six ? (
+              <LazyImage src={bannerUrls.six} alt="Naqshzari couture" />
+            ) : (
+              <div className="home-diptych__placeholder" />
+            )}
+          </div>
+          <span className="home-diptych__hover-line" aria-hidden="true" />
+        </button>
+      </section>
+
       <Footer />
-    </>
+    </div>
   );
 };
 

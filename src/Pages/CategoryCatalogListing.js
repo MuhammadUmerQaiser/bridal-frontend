@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { useParams } from "react-router-dom";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 import PageHeader from "../components/PageHeader";
@@ -8,37 +9,36 @@ import { cachedGet } from "../utils/apiCache";
 import { preloadImages } from "../utils/imageCache";
 import { enqueueSnackbar } from "notistack";
 
-const CatalogListing = () => {
-  const [catalogs, setCatalogs] = useState([]);
+const CategoryCatalogListing = () => {
+  const { slug } = useParams();
+  const [category, setCategory] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
 
   useEffect(() => {
     window.scrollTo(0, 0);
 
-    const fetchCatalogs = async () => {
+    const fetchCategoryBySlug = async () => {
+      setLoading(true);
       try {
         const data = await cachedGet(
-          "https://naqshzari.com/backend/public/api/get-all-catalogs",
+          `https://naqshzari.com/backend/public/api/get-category-by-slug/${slug}`,
           { headers: { Accept: "application/json" } }
         );
 
         if (data.status === 200) {
-          setCatalogs(data.data);
-          preloadImages(
-            data.data.map((item) => item.image),
-            { first: 8, concurrency: 3 }
-          );
+          setCategory(data.data);
+          preloadImages((data.data.catalogs || []).map((item) => item.image), {
+            first: 8,
+            concurrency: 3,
+          });
         } else {
-          setError(true);
-          enqueueSnackbar("Internal Server Error", {
+          enqueueSnackbar("Category not found", {
             variant: "error",
             autoHideDuration: 2000,
           });
         }
-      } catch (fetchError) {
-        setError(true);
-        enqueueSnackbar("Internal Server Error", {
+      } catch (error) {
+        enqueueSnackbar("Error fetching category", {
           variant: "error",
           autoHideDuration: 2000,
         });
@@ -47,13 +47,13 @@ const CatalogListing = () => {
       }
     };
 
-    fetchCatalogs();
-  }, []);
+    fetchCategoryBySlug();
+  }, [slug]);
 
   return (
     <div className="page-shell">
       <Header />
-      <PageHeader title="Catalog Listing" />
+      <PageHeader title={category?.title || "Category"} />
 
       <div className="page-body">
         {loading && (
@@ -62,9 +62,9 @@ const CatalogListing = () => {
           </div>
         )}
 
-        {!loading && !error && catalogs.length > 0 && (
+        {!loading && category?.catalogs?.length > 0 && (
           <div className="product-grid">
-            {catalogs.map((product, index) => (
+            {category.catalogs.map((product, index) => (
               <ProductCard
                 key={product.slug || index}
                 product={product}
@@ -74,7 +74,7 @@ const CatalogListing = () => {
           </div>
         )}
 
-        {!loading && (error || catalogs.length === 0) && (
+        {!loading && (!category?.catalogs || category.catalogs.length === 0) && (
           <p className="page-empty">No catalogs available at the moment.</p>
         )}
       </div>
@@ -84,4 +84,4 @@ const CatalogListing = () => {
   );
 };
 
-export default CatalogListing;
+export default CategoryCatalogListing;

@@ -8,37 +8,34 @@ import { cachedGet } from "../utils/apiCache";
 import { preloadImages } from "../utils/imageCache";
 import { enqueueSnackbar } from "notistack";
 
-const CatalogListing = () => {
-  const [catalogs, setCatalogs] = useState([]);
+const Collections = () => {
+  const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
 
   useEffect(() => {
     window.scrollTo(0, 0);
 
-    const fetchCatalogs = async () => {
+    const fetchCategories = async () => {
       try {
         const data = await cachedGet(
-          "https://naqshzari.com/backend/public/api/get-all-catalogs",
+          "https://naqshzari.com/backend/public/api/get-all-categories",
           { headers: { Accept: "application/json" } }
         );
 
         if (data.status === 200) {
-          setCatalogs(data.data);
-          preloadImages(
-            data.data.map((item) => item.image),
-            { first: 8, concurrency: 3 }
-          );
+          setCategories(data.data);
+          preloadImages(data.data.map((item) => item.image), {
+            first: 8,
+            concurrency: 3,
+          });
         } else {
-          setError(true);
-          enqueueSnackbar("Internal Server Error", {
+          enqueueSnackbar("Collection not found", {
             variant: "error",
             autoHideDuration: 2000,
           });
         }
-      } catch (fetchError) {
-        setError(true);
-        enqueueSnackbar("Internal Server Error", {
+      } catch (error) {
+        enqueueSnackbar("Error fetching Collection", {
           variant: "error",
           autoHideDuration: 2000,
         });
@@ -47,13 +44,16 @@ const CatalogListing = () => {
       }
     };
 
-    fetchCatalogs();
+    fetchCategories();
   }, []);
 
   return (
     <div className="page-shell">
       <Header />
-      <PageHeader title="Catalog Listing" />
+      <PageHeader
+        title="Collections"
+        subtitle="Explore our curated categories and discover signature Naqshzari pieces."
+      />
 
       <div className="page-body">
         {loading && (
@@ -62,20 +62,21 @@ const CatalogListing = () => {
           </div>
         )}
 
-        {!loading && !error && catalogs.length > 0 && (
+        {!loading && categories.length > 0 && (
           <div className="product-grid">
-            {catalogs.map((product, index) => (
+            {categories.map((product, index) => (
               <ProductCard
                 key={product.slug || index}
                 product={product}
+                variant="collection"
                 priority={index < 8}
               />
             ))}
           </div>
         )}
 
-        {!loading && (error || catalogs.length === 0) && (
-          <p className="page-empty">No catalogs available at the moment.</p>
+        {!loading && categories.length === 0 && (
+          <p className="page-empty">No collection available at the moment.</p>
         )}
       </div>
 
@@ -84,4 +85,4 @@ const CatalogListing = () => {
   );
 };
 
-export default CatalogListing;
+export default Collections;
