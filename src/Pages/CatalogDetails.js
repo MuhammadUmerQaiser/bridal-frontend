@@ -7,6 +7,7 @@ import PageHeader from "../components/PageHeader";
 import ProductCard from "../components/ProductCard";
 import { cachedGet } from "../utils/apiCache";
 import { markImageCached, preloadImages } from "../utils/imageCache";
+import { optimizeImageUrl } from "../utils/optimizeImage";
 import { enqueueSnackbar } from "notistack";
 import PageLoader from "../components/PageLoader";
 
@@ -40,10 +41,10 @@ const CatalogDetails = () => {
             ...(catalogData.catalog_images || []).map((img) => img.img),
           ].filter(Boolean);
 
-          preloadImages([...new Set(galleryUrls)], { concurrency: 4 });
+          preloadImages([...new Set(galleryUrls)], { concurrency: 4, size: "large" });
           preloadImages(
             (data.related_products || []).map((item) => item.image),
-            { first: 4, concurrency: 2 }
+            { first: 4, concurrency: 2, size: "card" }
           );
         } else {
           enqueueSnackbar("Internal Server Error", {
@@ -74,6 +75,7 @@ const CatalogDetails = () => {
   }, [catalog]);
 
   const activeImage = selectedSlide || catalog?.image;
+  const mainImageSrc = activeImage ? optimizeImageUrl(activeImage, "large") : null;
 
   return (
     <div className="page-shell">
@@ -92,21 +94,26 @@ const CatalogDetails = () => {
             <div className="detail-layout">
               <div className="detail-gallery">
                 <div className="detail-main-image">
-                  {activeImage && (
+                  {mainImageSrc && (
                     <img
-                      src={activeImage}
+                      src={mainImageSrc}
                       alt={catalog.title}
                       loading="eager"
                       decoding="async"
                       fetchPriority="high"
-                      onLoad={() => markImageCached(activeImage)}
+                      onLoad={() => {
+                        markImageCached(activeImage);
+                        markImageCached(mainImageSrc);
+                      }}
                     />
                   )}
                 </div>
 
                 {galleryImages.length > 1 && (
                   <div className="detail-thumbs">
-                    {galleryImages.map((image, index) => (
+                    {galleryImages.map((image, index) => {
+                      const thumbSrc = optimizeImageUrl(image, "detailThumb");
+                      return (
                       <button
                         key={`${image}-${index}`}
                         type="button"
@@ -116,14 +123,18 @@ const CatalogDetails = () => {
                         onClick={() => setSelectedSlide(image)}
                       >
                         <img
-                          src={image}
+                          src={thumbSrc}
                           alt={`View ${index + 1}`}
                           loading={index < 8 ? "eager" : "lazy"}
                           decoding="async"
-                          onLoad={() => markImageCached(image)}
+                          onLoad={() => {
+                            markImageCached(image);
+                            markImageCached(thumbSrc);
+                          }}
                         />
                       </button>
-                    ))}
+                    );
+                    })}
                   </div>
                 )}
               </div>

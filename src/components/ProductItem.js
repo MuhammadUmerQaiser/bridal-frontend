@@ -52,7 +52,7 @@ const ProductList = () => {
       );
       if (data.status === 200) {
         setCatalogs(data.data);
-        await preloadImages(data.data.map((item) => item.image));
+        await preloadImages(data.data.map((item) => item.image), { size: "card" });
       } else {
         enqueueSnackbar("Internal Server Error", {
           variant: "error",

@@ -27,7 +27,7 @@ const CatalogListing = () => {
           setCatalogs(data.data);
           preloadImages(
             data.data.map((item) => item.image),
-            { first: 8, concurrency: 3 }
+            { first: 8, concurrency: 3, size: "card" }
           );
         } else {
           setError(true);

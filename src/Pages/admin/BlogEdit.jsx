@@ -7,6 +7,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { FadeLoader } from "react-spinners";
 import ReactQuill from "react-quill";
 import "react-quill/dist/quill.snow.css";
+import { compressImageFile } from "../../utils/compressImage";
 
 const BlogEdit = () => {
   const [loading, setLoading] = useState(false);
@@ -104,16 +105,18 @@ const BlogEdit = () => {
     const formData = new FormData();
     formData.append("title", data.title);
     if (data.sections && data.sections.length > 0) {
-      data.sections.forEach((section, index) => {
-        // Append the section id if it exists
+      for (const [index, section] of data.sections.entries()) {
         if (section.id) {
           formData.append(`sections[${index}][id]`, section.id);
         }
         formData.append(`sections[${index}][description]`, section.description);
         if (section.image && section.image[0]) {
-          formData.append(`sections[${index}][image]`, section.image[0]);
+          formData.append(
+            `sections[${index}][image]`,
+            await compressImageFile(section.image[0])
+          );
         }
-      });
+      }
     }
     setLoading(true);
     try {

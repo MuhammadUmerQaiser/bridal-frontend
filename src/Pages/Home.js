@@ -51,6 +51,7 @@ const Home = () => {
           preloadImages((data.data || []).map((item) => item.image), {
             first: 4,
             concurrency: 2,
+            size: "card",
           });
         }
       })
@@ -116,6 +117,7 @@ const Home = () => {
                       src={slideUrls[index]}
                       alt={`Naqshzari collection slide ${index + 1}`}
                       className="main-slider-image"
+                      size="hero"
                       eager={index === 0}
                       fetchPriority={index === 0 ? "high" : "auto"}
                     />
@@ -193,6 +195,7 @@ const Home = () => {
               <LazyImage
                 src={bannerUrls.five}
                 alt="Naqshzari bridal collection"
+                size="large"
               />
             ) : (
               <div className="home-diptych__placeholder" />
@@ -212,7 +215,7 @@ const Home = () => {
         >
           <div className="home-diptych__media">
             {bannerUrls.six ? (
-              <LazyImage src={bannerUrls.six} alt="Naqshzari couture" />
+              <LazyImage src={bannerUrls.six} alt="Naqshzari couture" size="large" />
             ) : (
               <div className="home-diptych__placeholder" />
             )}

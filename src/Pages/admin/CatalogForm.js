@@ -5,6 +5,7 @@ import { enqueueSnackbar } from "notistack";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
+import { compressImageFile, compressImageFiles } from "../../utils/compressImage";
 
 const CatalogForm = () => {
   const [loading, setLoading] = useState(false);
@@ -53,12 +54,11 @@ const CatalogForm = () => {
     formData.append("category_id", data.category_id); // New field
 
     if (data.image && data.image[0]) {
-      formData.append("image", data.image[0]);
+      formData.append("image", await compressImageFile(data.image[0]));
     }
     if (data.images && data.images.length > 0) {
-      for (let i = 0; i < data.images.length; i++) {
-        formData.append("images[]", data.images[i]); // Using images[] to signify it's an array
-      }
+      const compressedImages = await compressImageFiles(data.images);
+      compressedImages.forEach((file) => formData.append("images[]", file));
     }
     setLoading(true);
     try {

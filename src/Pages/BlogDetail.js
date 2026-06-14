@@ -27,7 +27,8 @@ const BlogDetail = () => {
         if (data.status === 200) {
           setBlog(data.data);
           await preloadImages(
-            (data.data.sections || []).map((section) => section.image)
+            (data.data.sections || []).map((section) => section.image),
+            { size: "large" }
           );
         }
       } catch (error) {
@@ -92,6 +93,7 @@ const BlogDetail = () => {
                           src={section.image}
                           style={{ width: "100%" }}
                           alt={`Section ${index + 1}`}
+                          size="large"
                           eager={index === 0}
                         />
                       </div>
@@ -113,6 +115,7 @@ const BlogDetail = () => {
                           src={section.image}
                           alt={`Section ${index + 1}`}
                           style={{ width: "100%" }}
+                          size="large"
                         />
                       </div>
                     </Col>

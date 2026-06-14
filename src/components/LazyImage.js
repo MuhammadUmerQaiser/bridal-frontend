@@ -1,38 +1,48 @@
-import React, { memo, useEffect, useRef, useState } from "react";
+import React, { memo, useEffect, useMemo, useRef, useState } from "react";
 import { isImageCached, markImageCached } from "../utils/imageCache";
+import { optimizeImageUrl } from "../utils/optimizeImage";
 
 const LazyImage = memo(({
   src,
   alt = "",
   className = "",
   style,
+  size = "card",
   eager = false,
   fetchPriority,
   rootMargin = "400px",
   ...props
 }) => {
-  const hostRef = useRef(null);
-  const committedRef = useRef(Boolean(src && (eager || isImageCached(src))));
-  const [activeSrc, setActiveSrc] = useState(() =>
-    committedRef.current ? src : null
+  const displaySrc = useMemo(
+    () => (src ? optimizeImageUrl(src, size) : src),
+    [src, size]
   );
-  const [loaded, setLoaded] = useState(() => isImageCached(src));
+  const hostRef = useRef(null);
+  const committedRef = useRef(
+    Boolean(displaySrc && (eager || isImageCached(src) || isImageCached(displaySrc)))
+  );
+  const [activeSrc, setActiveSrc] = useState(() =>
+    committedRef.current ? displaySrc : null
+  );
+  const [loaded, setLoaded] = useState(
+    () => isImageCached(src) || isImageCached(displaySrc)
+  );
 
   useEffect(() => {
-    if (!src) {
+    if (!displaySrc) {
       return;
     }
 
-    if (isImageCached(src)) {
+    if (isImageCached(src) || isImageCached(displaySrc)) {
       committedRef.current = true;
-      setActiveSrc(src);
+      setActiveSrc(displaySrc);
       setLoaded(true);
       return;
     }
 
     if (eager || committedRef.current) {
       committedRef.current = true;
-      setActiveSrc(src);
+      setActiveSrc(displaySrc);
       return;
     }
 
@@ -41,7 +51,7 @@ const LazyImage = memo(({
 
     if (typeof IntersectionObserver === "undefined") {
       committedRef.current = true;
-      setActiveSrc(src);
+      setActiveSrc(displaySrc);
       return;
     }
 
@@ -49,7 +59,7 @@ const LazyImage = memo(({
       ([entry]) => {
         if (entry.isIntersecting) {
           committedRef.current = true;
-          setActiveSrc(src);
+          setActiveSrc(displaySrc);
           observer.disconnect();
         }
       },
@@ -58,7 +68,7 @@ const LazyImage = memo(({
 
     observer.observe(node);
     return () => observer.disconnect();
-  }, [src, eager, rootMargin]);
+  }, [src, displaySrc, eager, rootMargin]);
 
   if (!src) return null;
 
@@ -77,6 +87,7 @@ const LazyImage = memo(({
           fetchPriority={fetchPriority || (eager ? "high" : "auto")}
           onLoad={() => {
             markImageCached(src);
+            markImageCached(displaySrc);
             setLoaded(true);
           }}
           {...props}

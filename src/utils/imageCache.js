@@ -1,3 +1,5 @@
+import { optimizeImageUrl } from "./optimizeImage";
+
 const loadedImages = new Set();
 const preloadPromises = new Map();
 
@@ -9,13 +11,20 @@ export function markImageCached(src) {
   if (src) loadedImages.add(src);
 }
 
-export function preloadImage(src) {
+function getPreloadKey(src, size) {
+  return `${size}::${src}`;
+}
+
+export function preloadImage(src, size = "card") {
   if (!src || loadedImages.has(src)) {
     return Promise.resolve();
   }
 
-  if (preloadPromises.has(src)) {
-    return preloadPromises.get(src);
+  const optimizedSrc = optimizeImageUrl(src, size);
+  const cacheKey = getPreloadKey(src, size);
+
+  if (preloadPromises.has(cacheKey)) {
+    return preloadPromises.get(cacheKey);
   }
 
   const promise = new Promise((resolve) => {
@@ -23,31 +32,32 @@ export function preloadImage(src) {
     img.decoding = "async";
     img.onload = () => {
       markImageCached(src);
-      preloadPromises.delete(src);
+      markImageCached(optimizedSrc);
+      preloadPromises.delete(cacheKey);
       resolve();
     };
     img.onerror = () => {
-      preloadPromises.delete(src);
+      preloadPromises.delete(cacheKey);
       resolve();
     };
-    img.src = src;
+    img.src = optimizedSrc;
   });
 
-  preloadPromises.set(src, promise);
+  preloadPromises.set(cacheKey, promise);
   return promise;
 }
 
-async function preloadBatch(urls, concurrency = 3) {
+async function preloadBatch(urls, concurrency = 3, size = "card") {
   const queue = [...urls];
 
   while (queue.length) {
     const batch = queue.splice(0, concurrency);
-    await Promise.all(batch.map(preloadImage));
+    await Promise.all(batch.map((url) => preloadImage(url, size)));
   }
 }
 
 export function preloadImages(urls = [], options = {}) {
-  const { first = 0, concurrency = 3 } = options;
+  const { first = 0, concurrency = 3, size = "card" } = options;
   const unique = [...new Set(urls.filter(Boolean))];
 
   if (!unique.length) {
@@ -55,15 +65,15 @@ export function preloadImages(urls = [], options = {}) {
   }
 
   if (!first || first >= unique.length) {
-    return preloadBatch(unique, concurrency);
+    return preloadBatch(unique, concurrency, size);
   }
 
   const priority = unique.slice(0, first);
   const deferred = unique.slice(first);
 
-  return preloadBatch(priority, concurrency).then(() => {
+  return preloadBatch(priority, concurrency, size).then(() => {
     if (deferred.length) {
-      preloadBatch(deferred, concurrency);
+      preloadBatch(deferred, concurrency, size);
     }
   });
 }

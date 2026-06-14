@@ -30,6 +30,7 @@ const CategoryCatalogListing = () => {
           preloadImages((data.data.catalogs || []).map((item) => item.image), {
             first: 8,
             concurrency: 3,
+            size: "card",
           });
         } else {
           enqueueSnackbar("Category not found", {

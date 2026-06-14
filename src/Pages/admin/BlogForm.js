@@ -6,6 +6,7 @@ import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import ReactQuill from "react-quill";
 import "react-quill/dist/quill.snow.css";
+import { compressImageFile } from "../../utils/compressImage";
 
 const BlogForm = () => {
   const [loading, setLoading] = useState(false);
@@ -60,11 +61,13 @@ const BlogForm = () => {
     // Create a FormData instance for file uploads
     const formData = new FormData();
     formData.append("title", data.title);
-    data.sections.forEach((section, index) => {
-      // section.image is a FileList; use the first file
-      formData.append(`sections[${index}][image]`, section.image[0]);
+    for (const [index, section] of data.sections.entries()) {
+      formData.append(
+        `sections[${index}][image]`,
+        await compressImageFile(section.image[0])
+      );
       formData.append(`sections[${index}][description]`, section.description);
-    });
+    }
 
     setLoading(true);
     try {

@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { enqueueSnackbar } from "notistack";
 import { FadeLoader } from "react-spinners";
+import { compressImageFile } from "../../utils/compressImage";
 
 const CategoryIndex = () => {
   // Page loading for fetching list
@@ -104,7 +105,7 @@ const CategoryIndex = () => {
 
     const formData = new FormData();
     formData.append("title", newCategoryName);
-    formData.append("image", newCategoryImage);
+    formData.append("image", await compressImageFile(newCategoryImage));
 
     try {
       setFormLoading(true);
@@ -157,7 +158,7 @@ const CategoryIndex = () => {
     const formData = new FormData();
     formData.append("title", editCategoryName);
     if (editCategoryImage) {
-      formData.append("image", editCategoryImage);
+      formData.append("image", await compressImageFile(editCategoryImage));
     }
 
     try {

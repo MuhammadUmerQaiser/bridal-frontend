@@ -49,7 +49,7 @@ const Blogs = () => {
             const sectionImage = post.sections?.[0]?.image;
             return [sectionImage, post.image].filter(Boolean);
           });
-          await preloadImages(images);
+          await preloadImages(images, { size: "card" });
         }
       })
       .catch((error) => {

@@ -5,6 +5,7 @@ import { enqueueSnackbar } from "notistack";
 import axios from "axios";
 import { useNavigate, useParams } from "react-router-dom";
 import { FadeLoader } from "react-spinners";
+import { compressImageFile, compressImageFiles } from "../../utils/compressImage";
 
 const CatalogEdit = () => {
   const [loading, setLoading] = useState(false);
@@ -116,13 +117,12 @@ const CatalogEdit = () => {
     formData.append("category_id", data.category_id); // Send category_id
 
     if (data.image && data.image[0]) {
-      formData.append("image", data.image[0]);
+      formData.append("image", await compressImageFile(data.image[0]));
     }
 
     if (data.images && data.images.length > 0) {
-      for (let i = 0; i < data.images.length; i++) {
-        formData.append("images[]", data.images[i]);
-      }
+      const compressedImages = await compressImageFiles(data.images);
+      compressedImages.forEach((file) => formData.append("images[]", file));
     }
 
     setLoading(true);

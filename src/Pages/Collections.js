@@ -27,6 +27,7 @@ const Collections = () => {
           preloadImages(data.data.map((item) => item.image), {
             first: 8,
             concurrency: 3,
+            size: "card",
           });
         } else {
           enqueueSnackbar("Collection not found", {

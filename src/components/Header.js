@@ -70,7 +70,7 @@ const Header = () => {
         if (data && data.status === 200) {
           const items = Array.isArray(data.data) ? data.data : [];
           setCollections(items);
-          await preloadImages(items.map((item) => item.image));
+          await preloadImages(items.map((item) => item.image), { size: "thumb" });
         } else {
           setCollections([]);
         }
@@ -156,6 +156,7 @@ const Header = () => {
                     <LazyImage
                       src={item.image}
                       alt={item.title || "collection"}
+                      size="thumb"
                     />
                     <div className="mega-menu-card-label">
                       {item.title || "Collection"}
@@ -270,6 +271,7 @@ const Header = () => {
                             <LazyImage
                               src={item.image}
                               alt={item.title || "collection"}
+                              size="thumb"
                               style={{
                                 width: "100%",
                                 height: 140,
