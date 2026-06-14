@@ -1659,7 +1659,7 @@ input[type="radio"]:checked + label::after {
 }
 
 .naqsh-about img {
-  width: 70%;
+  width: min(440px, 88%);
 }
 
 .naqsh-about {

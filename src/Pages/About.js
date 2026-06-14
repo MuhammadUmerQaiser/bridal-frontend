@@ -1,7 +1,6 @@
 import React from "react";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
-import LazyImage from "../components/LazyImage";
 import { Col, Container, Row } from "react-bootstrap";
 import Naqsh from "../assets/naqshabout.jpeg";
 
@@ -18,7 +17,7 @@ const About = () => {
           <Row>
             <Col md={6}>
               <div className="naqsh-about">
-                <LazyImage src={Naqsh} alt="Naqshzari bridal craftsmanship" />
+                <img src={Naqsh} alt="Naqshzari bridal craftsmanship" />
               </div>
             </Col>
             <Col md={6}>

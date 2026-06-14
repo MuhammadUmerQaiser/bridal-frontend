@@ -740,9 +740,35 @@ input[type="radio"]:checked + label::after {
 }
 
 /* ─── About ─── */
-.naqsh-about img {
+.naqsh-about {
+  text-align: center;
+  line-height: 0;
+}
+
+.naqsh-about .lazy-image-host {
+  display: inline-block;
+  width: auto;
+  max-width: 100%;
+  background: transparent !important;
+}
+
+.naqsh-about img,
+.naqsh-about .lazy-image {
+  width: min(440px, 88%);
+  max-width: 100%;
+  height: auto;
+  display: block;
+  margin: 0 auto;
   border-radius: 2px;
   box-shadow: var(--shadow-card);
+  background: transparent;
+}
+
+@media (max-width: 600px) {
+  .naqsh-about img,
+  .naqsh-about .lazy-image {
+    width: 100%;
+  }
 }
 
 /* ─── Footer ─── */
