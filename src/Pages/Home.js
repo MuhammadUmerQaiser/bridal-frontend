@@ -12,10 +12,12 @@ import "swiper/css/effect-fade";
 import "./Home.css";
 
 const SLIDER_IMAGES = [
-  () => import("../assets/1.jpg"),
-  () => import("../assets/2.jpg"),
-  () => import("../assets/3.jpg"),
-  () => import("../assets/4.jpg"),
+  () => import("../assets/12.png"),
+  () => import("../assets/11.png"),
+  () => import("../assets/13.png"),
+  () => import("../assets/14.png"),
+  () => import("../assets/Untitled-1.png"),
+  () => import("../assets/Untitled-2.png"),
 ];
 
 const BANNER_IMAGES = {
