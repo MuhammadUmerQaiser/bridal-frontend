@@ -43,6 +43,37 @@
   display: block;
 }
 
+/* Full-frame slides (shorter aspect than banner): blurred fill + contain */
+.home-hero-slide--contain {
+  background: #14080a;
+}
+
+.home-hero-slide .main-slider-image-fill {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  filter: blur(32px) brightness(0.55);
+  transform: scale(1.14);
+  pointer-events: none;
+  user-select: none;
+}
+
+.home-hero-slide--contain .lazy-image-host {
+  position: relative;
+  z-index: 1;
+  background: transparent;
+}
+
+.home-hero-slide--contain .main-slider-image.main-slider-image--contain,
+.home-hero-slide--contain .lazy-image.main-slider-image--contain {
+  object-fit: contain;
+  object-position: center;
+  background: transparent;
+}
+
 .home-hero-slide::after {
   content: "";
   position: absolute;
@@ -383,6 +414,17 @@
   .home-hero-slider {
     height: 62vh;
     min-height: 400px;
+  }
+
+  /* No side blur on mobile — fill banner with cover */
+  .home-hero-slide .main-slider-image-fill {
+    display: none;
+  }
+
+  .home-hero-slide--contain .main-slider-image.main-slider-image--contain,
+  .home-hero-slide--contain .lazy-image.main-slider-image--contain {
+    object-fit: cover;
+    object-position: center top;
   }
 
   .home-hero-slider .swiper-button-prev,

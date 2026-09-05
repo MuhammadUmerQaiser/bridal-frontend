@@ -12,33 +12,64 @@ import "swiper/css/effect-fade";
 import "./Home.css";
 
 const SLIDER_IMAGES = [
-  () => import("../assets/12.png"),
-  () => import("../assets/11.png"),
-  () => import("../assets/13.png"),
-  () => import("../assets/14.png"),
-  () => import("../assets/Untitled-1.png"),
-  () => import("../assets/Untitled-2.png"),
+  { load: () => import("../assets/12.png") },
+  // { load: () => import("../assets/14.png") },
+  // Shorter than banner aspect — show full frame with blurred fill
+  { load: () => import("../assets/ARS02904.jpeg"), fit: "contain" },
+  { load: () => import("../assets/ARS03518.jpeg"), fit: "contain" },
 ];
 
+const MOBILE_SLIDER_MQ = "(max-width: 991px)";
+
+const orderSlidesForViewport = (list, preferContainFirst) => {
+  if (!preferContainFirst || !list.length) return list;
+  const preferred = list.filter((slide) => slide.fit === "contain");
+  const rest = list.filter((slide) => slide.fit !== "contain");
+  return [...preferred, ...rest];
+};
+
 const BANNER_IMAGES = {
-  five: () => import("../assets/5.jpg"),
-  six: () => import("../assets/6.jpg"),
+  five: () => import("../assets/ARS03086.jpeg"),
+  six: () => import("../assets/ARS03498.jpeg"),
 };
 
 const Home = () => {
   const navigate = useNavigate();
   const [catalogs, setCatalogs] = useState([]);
   const [catalogsLoading, setCatalogsLoading] = useState(true);
-  const [slideUrls, setSlideUrls] = useState([]);
+  const [slides, setSlides] = useState([]);
   const [bannerUrls, setBannerUrls] = useState({});
   const [activeSlide, setActiveSlide] = useState(1);
+  const [isMobile, setIsMobile] = useState(() =>
+    typeof window !== "undefined"
+      ? window.matchMedia(MOBILE_SLIDER_MQ).matches
+      : false
+  );
   const bannersLoadedRef = useRef(false);
-  const slideCount = slideUrls.length || SLIDER_IMAGES.length;
+  const displaySlides = orderSlidesForViewport(
+    slides.length ? slides : SLIDER_IMAGES,
+    isMobile
+  );
+  const slideCount = displaySlides.length;
 
   useEffect(() => {
-    Promise.all(SLIDER_IMAGES.map((loader) => loader())).then((modules) => {
-      setSlideUrls(modules.map((module) => module.default));
-    });
+    const media = window.matchMedia(MOBILE_SLIDER_MQ);
+    const sync = () => {
+      setIsMobile(media.matches);
+      setActiveSlide(1);
+    };
+    sync();
+    media.addEventListener("change", sync);
+    return () => media.removeEventListener("change", sync);
+  }, []);
+
+  useEffect(() => {
+    Promise.all(
+      SLIDER_IMAGES.map(async ({ load, fit }) => {
+        const module = await load();
+        return { url: module.default, fit };
+      })
+    ).then(setSlides);
   }, []);
 
   useEffect(() => {
@@ -95,40 +126,65 @@ const Home = () => {
       <section className="home-hero">
         <div className="home-hero-slider main-slider">
           <Swiper
+            key={isMobile ? "hero-mobile" : "hero-desktop"}
             pagination={{ clickable: true }}
             autoplay={{
               delay: 5000,
               disableOnInteraction: false,
             }}
             navigation={true}
-            loop={slideUrls.length > 1}
+            rewind={slideCount > 1}
             speed={900}
             effect="fade"
             fadeEffect={{ crossFade: true }}
             modules={[Pagination, Navigation, Autoplay, EffectFade]}
             className="mySwiper"
-            onSlideChange={(swiper) =>
-              setActiveSlide((swiper.realIndex % slideCount) + 1)
-            }
+            onRealIndexChange={(swiper) => {
+              const index = swiper.realIndex;
+              if (Number.isFinite(index) && slideCount > 0) {
+                setActiveSlide((index % slideCount) + 1);
+              }
+            }}
           >
-            {(slideUrls.length ? slideUrls : SLIDER_IMAGES).map((_, index) => (
-              <SwiperSlide key={index}>
-                <div className="home-hero-slide">
-                  {slideUrls[index] ? (
-                    <LazyImage
-                      src={slideUrls[index]}
-                      alt={`Naqshzari collection slide ${index + 1}`}
-                      className="main-slider-image"
-                      size="hero"
-                      eager={index === 0}
-                      fetchPriority={index === 0 ? "high" : "auto"}
-                    />
-                  ) : (
-                    <div className="slider-placeholder" aria-hidden="true" />
-                  )}
-                </div>
-              </SwiperSlide>
-            ))}
+            {displaySlides.map((slide, index) => {
+              const url = slide.url;
+              const isContain = slide.fit === "contain";
+
+              return (
+                <SwiperSlide key={url || `slide-${index}`}>
+                  <div
+                    className={`home-hero-slide${
+                      isContain ? " home-hero-slide--contain" : ""
+                    }`}
+                  >
+                    {url ? (
+                      <>
+                        {isContain && (
+                          <img
+                            src={url}
+                            alt=""
+                            aria-hidden="true"
+                            className="main-slider-image-fill"
+                          />
+                        )}
+                        <LazyImage
+                          src={url}
+                          alt={`Naqshzari collection slide ${index + 1}`}
+                          className={`main-slider-image${
+                            isContain ? " main-slider-image--contain" : ""
+                          }`}
+                          size="hero"
+                          eager={index === 0}
+                          fetchPriority={index === 0 ? "high" : "auto"}
+                        />
+                      </>
+                    ) : (
+                      <div className="slider-placeholder" aria-hidden="true" />
+                    )}
+                  </div>
+                </SwiperSlide>
+              );
+            })}
           </Swiper>
 
           <div className="home-hero-counter" aria-live="polite">
