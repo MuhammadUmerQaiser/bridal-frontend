@@ -176,7 +176,7 @@ const CatalogDetails = () => {
 
                 <div className="detail-description">
                   The ensemble is complemented by Naqshzari. For enquiries,
-                  please contact orders@naqshzari.com or call +923008220544.
+                  please contact orders@naqshzari.com or call +92 325 1228881.
                 </div>
 
                 <div className="detail-leadtime">Made to order: 7 - 8 Weeks</div>

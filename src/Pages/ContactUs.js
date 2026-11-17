@@ -90,7 +90,7 @@ const ContactUs = () => {
     }
   };
   const openWhatsapp = () => {
-    const phoneNumber = "+923008220544";
+    const phoneNumber = "+923251228881";
     const message = "Hello, I would like to get in touch with you!";
     const url = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(
       message
